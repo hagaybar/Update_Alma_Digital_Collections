@@ -1,0 +1,84 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# --- System / Temp Files ---
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.DS_Store
+Thumbs.db
+
+# Office Docs and Binary Formats ---
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.odt
+*.ods
+*.odp
+
+# Archives and compressed files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# --- Build / Dist ---
+build/
+dist/
+*.egg-info/
+.eggs/
+*.spec
+
+# --- Node / JS ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Misc ---
+*.sqlite3
+*.db
+*.pdf
+*.exe
+*.dll
+*.so
+*.out
+*.a
+*.o
+
+# --- Git ---
+*.orig
+*.patch
+
+# Custom additions
+notes/
+archive/
+*.bak~
+
+# --- Configs ---
+*.yml
+*.yaml
