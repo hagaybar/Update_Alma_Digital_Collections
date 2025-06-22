@@ -25,7 +25,7 @@ class Logger:
             log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
             log_dir: Directory to store log files
         """
-        self.log_level = getattr(logging, log_level.upper(), logging.INFO)
+        self.log_level = getattr(logging, log_level.upper(), logging.DEBUG)
         self.log_dir = log_dir
         
         # Create logs directory if it doesn't exist
@@ -79,7 +79,6 @@ class AlmaCollectionManager:
     - Clear specified collections
     - Retrieve MMS IDs from Analytics reports
     - Add items to collections based on MMS IDs
-    - Synchronize collections with Analytics reports
     """
     
     def __init__(self, api_key: str, collection_id: str, region: str = "na"):
@@ -193,7 +192,7 @@ class AlmaCollectionManager:
                             self.logger.debug(f"Removed {i}/{len(mms_ids)} items")
                             
                     except requests.exceptions.RequestException as e:
-                        self.logger.warning(f"Failed to remove MMS ID {mms_id}: {str(e)}")
+                        self.logger.error(f"Failed to remove MMS ID {mms_id}: {str(e)}")
                         # Continue with other IDs even if one fails
                         
                 self.logger.info(f"Completed removing items from collection")
@@ -253,7 +252,7 @@ class AlmaCollectionManager:
                 raw_mms_elements = soup.find_all('Column1')
                 
                 if not raw_mms_elements:
-                    self.logger.warning(f"No 'Column1' elements found on page {page}. Report may be empty or structure changed.")
+                    self.logger.error(f"No 'Column1' elements found on page {page}. Report may be empty or structure changed.")
                 
                 # Add MMS IDs from this page to our list
                 page_mms_ids = [element.get_text() for element in raw_mms_elements]
@@ -294,15 +293,16 @@ class AlmaCollectionManager:
             mms_ids: List of MMS IDs to add to the collection
         """
         if not mms_ids:
-            self.logger.warning("No MMS IDs provided to add to collection")
+            self.logger.error("No MMS IDs provided to add to collection")
             return
             
         self.logger.info(f"Adding {len(mms_ids)} items to collection {self.collection_id}")
             # Deduplicate MMS IDs to avoid duplicate API calls
         unique_mms_ids = list(set(mms_ids))
-        # Log deduplication info
+        # Print deduplication info
         if len(unique_mms_ids) < len(mms_ids):
-            self.logger.info(f"Removed {len(mms_ids) - len(unique_mms_ids)} duplicate MMS IDs from the add list during deduplication")
+            print(f"Removed {len(mms_ids) - len(unique_mms_ids)} duplicate MMS IDs")
+
 
         success_count = 0
         error_count = 0
@@ -336,134 +336,47 @@ class AlmaCollectionManager:
                 success_count += 1
                 
                 # Log progress periodically
-                if i % 20 == 0 or i == len(unique_mms_ids):
-                    self.logger.debug(f"Processed {i}/{len(unique_mms_ids)} additions. Current success: {success_count}, errors: {error_count}")
+                if i % 20 == 0 or i == len(mms_ids):
+                    self.logger.debug(f"Added {i}/{len(mms_ids)} items")
                     
             except requests.exceptions.RequestException as e:
-                self.logger.warning(f"Failed to add MMS ID {mms_id}: {str(e)}")
+                self.logger.error(f"Failed to add MMS ID {mms_id}: {str(e)}")
                 error_count += 1
                 # Continue with other IDs even if one fails
                 
         self.logger.info(f"Addition complete. Success: {success_count}, Errors: {error_count}")
-
-    def remove_from_collection(self, mms_ids: List[str]) -> None:
-        """
-        Remove items from the collection based on their MMS IDs.
-
-        Args:
-            mms_ids: List of MMS IDs to remove from the collection
-        """
-        if not mms_ids:
-            self.logger.warning("No MMS IDs provided to remove from collection")
-            return
-
-        self.logger.info(f"Removing {len(mms_ids)} items from collection {self.collection_id}")
-        
-        # Deduplicate MMS IDs to avoid issues, though API should handle it
-        unique_mms_ids = list(set(mms_ids))
-        if len(unique_mms_ids) < len(mms_ids):
-             self.logger.info(f"Removed {len(mms_ids) - len(unique_mms_ids)} duplicate MMS IDs from removal list")
-
-        success_count = 0
-        error_count = 0
-
-        for i, mms_id in enumerate(unique_mms_ids, 1):
-            try:
-                response = requests.delete(
-                    f'{self.alma_base}/bibs/collections/{self.collection_id}/bibs/{mms_id}',
-                    params={'apikey': self.api_key}
-                )
-                response.raise_for_status()  # Check for HTTP errors
-                success_count += 1
-
-                # Log progress periodically
-                if i % 20 == 0 or i == len(unique_mms_ids):
-                    self.logger.debug(f"Processed {i}/{len(unique_mms_ids)} removal requests. Success: {success_count}, Errors: {error_count}")
-
-            except requests.exceptions.RequestException as e:
-                self.logger.warning(f"Failed to remove MMS ID {mms_id}: {str(e)}")
-                error_count += 1
-                # Continue with other IDs even if one fails
-        
-        self.logger.info(f"Removal complete. Success: {success_count}, Errors: {error_count}")
     
     def update_collection_from_reports(self, report_paths: List[str]) -> None:
         """
-        Synchronizes the items in the specified Alma collection with the MMS IDs found
-        in one or more Analytics reports.
-
-        The process involves:
-        1. Fetching all unique MMS IDs from the provided Analytics report(s).
-        2. Fetching all MMS IDs currently in the target Alma collection.
-        3. Calculating the differences:
-            - MMS IDs in the report(s) but not in the collection (to be added).
-            - MMS IDs in the collection but not in the report(s) (to be removed).
-        4. Adding the new MMS IDs to the collection.
-        5. Removing the outdated MMS IDs from the collection.
-
-        If no MMS IDs are found in any of the reports, the collection remains unmodified.
-
+        Update the collection with items from multiple Analytics reports.
+        
         Args:
-            report_paths: A list of strings, where each string is the path to an
-                          Analytics report containing MMS IDs.
+            report_paths: List of paths to Analytics reports
         """
-        self.logger.info(f"Starting synchronization for collection {self.collection_id} using {len(report_paths)} report(s).")
-
+        self.logger.info(f"Updating collection {self.collection_id} from {len(report_paths)} reports")
+        
         try:
-            # 1. Fetch all MMS IDs from the reports
-            report_mms_ids = []
+            # Collect MMS IDs from all reports
+            all_mms_ids = []
             for i, path in enumerate(report_paths, 1):
                 self.logger.info(f"Processing report {i}/{len(report_paths)}: {path}")
-                mms_ids_from_one_report = self.get_mms_ids_from_report(path)
-                report_mms_ids.extend(mms_ids_from_one_report)
-                self.logger.info(f"Found {len(mms_ids_from_one_report)} items in report {i}")
+                mms_ids = self.get_mms_ids_from_report(path)
+                all_mms_ids.extend(mms_ids)
+                self.logger.info(f"Found {len(mms_ids)} items in report {i}")
             
-            # Deduplicate report_mms_ids
-            report_mms_ids = list(set(report_mms_ids))
-            self.logger.info(f"Found a total of {len(report_mms_ids)} unique MMS IDs from all reports.")
-
-            # 2. If report_mms_ids is empty, log and skip
-            if not report_mms_ids:
-                self.logger.info("No items found in any of the reports. Collection will not be modified.")
-                return
-
-            # 3. Fetch all MMS IDs currently in the Alma collection
-            self.logger.info(f"Fetching current state of collection {self.collection_id}")
-            current_collection_count = self.get_collection_count()
-            current_collection_mms_ids = []
-            if current_collection_count > 0:
-                current_collection_mms_ids = self.get_collection_mms_ids(current_collection_count)
-            self.logger.info(f"Collection {self.collection_id} currently contains {len(current_collection_mms_ids)} items.")
-
-            # 4. Calculate differences
-            report_mms_ids_set = set(report_mms_ids)
-            current_collection_mms_ids_set = set(current_collection_mms_ids)
-
-            mms_ids_to_add = list(report_mms_ids_set - current_collection_mms_ids_set)
-            mms_ids_to_remove = list(current_collection_mms_ids_set - report_mms_ids_set)
-
-            # 5. Log the counts
-            self.logger.info(f"MMS IDs to add: {len(mms_ids_to_add)}")
-            self.logger.info(f"MMS IDs to remove: {len(mms_ids_to_remove)}")
-
-            # 6. Add new MMS IDs to the collection
-            if mms_ids_to_add:
-                self.logger.info(f"Adding {len(mms_ids_to_add)} items to collection {self.collection_id}")
-                self.add_to_collection(mms_ids_to_add)
+            if all_mms_ids:
+                self.logger.info(f"Found a total of {len(all_mms_ids)} MMS IDs from all reports.")
+                # Clear the collection first
+                self.clear_collection()
+                # Add all MMS IDs to the collection
+                self.logger.info(f"Adding {len(all_mms_ids)} total items to collection")
+                self.add_to_collection(all_mms_ids)
+                self.logger.info("Collection update completed successfully")
             else:
-                self.logger.info("No new items to add to the collection.")
-
-            # 7. Remove old MMS IDs from the collection
-            if mms_ids_to_remove:
-                self.logger.info(f"Removing {len(mms_ids_to_remove)} items from collection {self.collection_id}")
-                self.remove_from_collection(mms_ids_to_remove)
-            else:
-                self.logger.info("No items to remove from the collection.")
-            
-            self.logger.info(f"Collection {self.collection_id} synchronization completed successfully.")
-
+                self.logger.info("No items found in any of the reports. Collection was not cleared or modified.")
+                
         except Exception as e:
-            self.logger.error(f"Error during synchronization of collection {self.collection_id} from reports: {str(e)}")
+            self.logger.error(f"Error updating collection from reports: {str(e)}")
             raise
 
 
@@ -636,7 +549,7 @@ def main():
                     tasks_to_run[task_name] = all_tasks[task_name]
                     logger.info(f"Task '{task_name}' found in configuration")
                 else:
-                    logger.warning(f"Task '{task_name}' not found in configuration. Skipping.")
+                    logger.error(f"Task '{task_name}' not found in configuration. Skipping.")
             
             if not tasks_to_run:
                 logger.error("None of the specified tasks were found in the configuration")
@@ -718,7 +631,7 @@ def test_functionality():
     logger.info("[TEST 2] Checking API Key")
     api_key = os.environ.get('ALMA_PROD_API_KEY')
     if not api_key:
-        logger.warning("Environment variable ALMA_PROD_API_KEY is not set")
+        logger.error("Environment variable ALMA_PROD_API_KEY is not set")
         logger.info("Using placeholder API key for testing: 'TEST_API_KEY'")
         api_key = 'TEST_API_KEY'
     else:
@@ -749,7 +662,7 @@ def test_functionality():
         if api_key:
             logger.info("All required parameters available for manager initialization")
         else:
-            logger.warning("Missing API key for manager initialization")
+            logger.error("Missing API key for manager initialization")
     except Exception as e:
         logger.error(f"Class initialization simulation failed: {e}")
     
@@ -824,60 +737,23 @@ def test_functionality():
         logger.error(f"Request simulation failed: {e}")
     
     # Test 5: Simulating workflow
-    logger.info("[TEST 5] Simulating Full Synchronization Workflow")
+    logger.info("[TEST 5] Simulating Full Workflow")
     try:
         report_paths = first_task['report_paths']
-        logger.debug(f"Simulating synchronization workflow for collection: {collection_id}")
-
-        # Simulate fetching MMS IDs from reports
-        logger.debug(f"Step 1: Simulate fetching MMS IDs from {len(report_paths)} report(s).")
-        simulated_report_mms_ids_list = ["MMSID1", "MMSID2", "MMSID3"] # Example: IDs from reports
-        logger.debug(f"  → Simulated unique MMS IDs from reports: {simulated_report_mms_ids_list} (Count: {len(simulated_report_mms_ids_list)})")
+        logger.debug(f"Workflow for collection: {collection_id}")
+        logger.debug("Step 1: Would clear existing collection items")
+        logger.debug("  -> GET collection count")
+        logger.debug("  -> GET all MMS IDs in collection")
+        logger.debug("  -> DELETE each item from collection")
         
-        # Simulate scenario: No MMS IDs found in reports
-        logger.info("[TEST 5a] Simulating Workflow - No MMS IDs Found in Reports")
-        simulated_empty_report_mms_ids = []
-        logger.debug(f"  Step 2a: Check if report MMS IDs are empty (simulated count: {len(simulated_empty_report_mms_ids)})")
-        if not simulated_empty_report_mms_ids:
-            logger.info("    → Simulated: No MMS IDs found in reports. Collection would not be modified.")
-        logger.info("  Workflow simulation (No MMS IDs in Reports) completed.")
-
-        # Continue with scenario where MMS IDs ARE found in reports
-        logger.info("[TEST 5b] Simulating Workflow - MMS IDs Found in Reports (Synchronization Logic)")
-        logger.debug(f"  Step 2b: Proceeding with report MMS IDs: {simulated_report_mms_ids_list}")
-
-        # Simulate fetching current collection MMS IDs
-        logger.debug("  Step 3: Simulate fetching current collection state.")
-        simulated_current_collection_count = 2 
-        simulated_current_collection_mms_ids_list = ["MMSID2", "MMSID4"] # Example: IDs currently in collection
-        logger.debug(f"    → Simulated current collection count: {simulated_current_collection_count}")
-        logger.debug(f"    → Simulated current collection MMS IDs: {simulated_current_collection_mms_ids_list} (Count: {len(simulated_current_collection_mms_ids_list)})")
-
-        # Simulate calculating differences
-        logger.debug("  Step 4: Simulate calculating differences.")
-        report_set = set(simulated_report_mms_ids_list)
-        current_set = set(simulated_current_collection_mms_ids_list)
-        simulated_mms_ids_to_add = list(report_set - current_set)
-        simulated_mms_ids_to_remove = list(current_set - report_set)
-        logger.debug(f"    → Simulated MMS IDs to add: {simulated_mms_ids_to_add} (Count: {len(simulated_mms_ids_to_add)})")
-        logger.debug(f"    → Simulated MMS IDs to remove: {simulated_mms_ids_to_remove} (Count: {len(simulated_mms_ids_to_remove)})")
-
-        # Simulate adding items
-        if simulated_mms_ids_to_add:
-            logger.debug(f"  Step 5a: Simulate adding {len(simulated_mms_ids_to_add)} items to collection.")
-            logger.debug(f"    → Would call add_to_collection with: {simulated_mms_ids_to_add}")
-        else:
-            logger.debug("  Step 5a: No items to add (simulated).")
-
-        # Simulate removing items
-        if simulated_mms_ids_to_remove:
-            logger.debug(f"  Step 5b: Simulate removing {len(simulated_mms_ids_to_remove)} items from collection.")
-            logger.debug(f"    → Would call remove_from_collection with: {simulated_mms_ids_to_remove}")
-        else:
-            logger.debug("  Step 5b: No items to remove (simulated).")
+        logger.debug(f"Step 2: Would fetch MMS IDs from {len(report_paths)} report(s)")
+        for i, path in enumerate(report_paths, 1):
+            logger.debug(f"  -> GET MMS IDs from report {i}: {path}")
             
-        logger.info("  Full synchronization workflow simulation completed.")
-
+        logger.debug("Step 3: Would add MMS IDs to the collection")
+        logger.debug("  -> POST each MMS ID to the collection")
+        
+        logger.info("Workflow simulation completed")
     except Exception as e:
         logger.error(f"Workflow simulation failed: {e}")
     
