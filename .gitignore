@@ -80,5 +80,5 @@ archive/
 *.bak~
 
 # --- Configs ---
-*.yml
-*.yaml
+# Real config (contains environment-specific paths)
+config.yml

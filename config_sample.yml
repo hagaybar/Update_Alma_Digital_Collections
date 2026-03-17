@@ -1,0 +1,17 @@
+# Alma Collection Manager Configuration Template
+#
+# Copy this file to config.yml and update with your values:
+#   cp config_sample.yml config.yml
+#
+# config.yml is gitignored - your real paths won't be committed
+
+environment: SANDBOX  # or PRODUCTION
+
+tasks:
+  # Example task - update with your collection and report paths
+  example_collection_sync:
+    # Digital collection ID from Alma
+    collection_id: "YOUR_COLLECTION_ID"
+    # Analytics report paths to pull MMS IDs from
+    report_paths:
+      - "/shared/Your Institution/Reports/Path/To/Report"
