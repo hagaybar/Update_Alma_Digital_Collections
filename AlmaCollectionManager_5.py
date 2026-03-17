@@ -26,12 +26,13 @@ class Logger:
             log_dir: Directory to store log files
         """
         self.log_level = getattr(logging, log_level.upper(), logging.INFO)
-        self.log_dir = log_dir
+        # Make log_dir absolute (so it won't depend on CWD)
+        self.log_dir = os.path.abspath(log_dir)
+        # self.log_dir = log_dir
         
         # Create logs directory if it doesn't exist
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-            
+        os.makedirs(self.log_dir, exist_ok=True)
+                    
         # Generate log filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file = os.path.join(log_dir, f"alma_manager_{timestamp}.log")
@@ -573,6 +574,18 @@ class ConfigManager:
         return task
 
 
+
+def resolve_config_path(cli_config: str | None = None) -> str:
+    if cli_config:
+        return cli_config
+
+    if os.environ.get('ALMA_CONFIG_PATH'):
+        return os.environ['ALMA_CONFIG_PATH']
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, 'config.yml')
+
+
 def main():
     """
     Main entry point for the Alma Collection Manager.
@@ -614,8 +627,8 @@ def main():
             config_path = args.config
             logger.info(f"Using configuration file from command line: {config_path}")
         else:
-            config_path = os.environ.get('ALMA_CONFIG_PATH', 'config.yml')
-            logger.info(f"Using configuration file from environment or default: {config_path}")
+            config_path = resolve_config_path(args.config)
+            logger.info(f"Using configuration file: {config_path}")
         
         # Load configuration
         logger.info("Loading configuration")
@@ -697,7 +710,7 @@ def test_functionality():
     # Test 1: Configuration loading
     logger.info("[TEST 1] Loading Configuration")
     try:
-        config_path = os.environ.get('ALMA_CONFIG_PATH', 'config.yml')
+        config_path = resolve_config_path()
         logger.debug(f"Looking for configuration file: {config_path}")
         
         config_manager = ConfigManager(config_path)
