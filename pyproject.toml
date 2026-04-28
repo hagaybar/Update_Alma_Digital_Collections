@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "update-alma-digital-collections"
+version = "1.0.0"
+description = "Synchronize Alma Digital Collections with MMS IDs from Analytics reports"
+authors = ["Hagay Bar <hagaybar@tauex.tau.ac.il>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+# AlmaAPITK package from PyPI (https://pypi.org/project/almaapitk/)
+almaapitk = ">=0.3.1"
+requests = "^2.32"
+beautifulsoup4 = "^4.12"
+pyyaml = "^6.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
