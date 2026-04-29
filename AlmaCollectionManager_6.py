@@ -420,14 +420,28 @@ def main():
         '--dry-run', action='store_true',
         help='Show what would be done without making changes'
     )
+    parser.add_argument(
+        '--log-dir', default='logs',
+        help='Directory for log files (default: ./logs)'
+    )
     args = parser.parse_args()
 
-    # Setup basic logging
+    # Setup logging — console + timestamped file (matches v5 CLI behavior)
+    log_dir = os.path.abspath(args.log_dir)
+    os.makedirs(log_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(log_dir, f"alma_manager_{timestamp}.log")
+
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file, encoding='utf-8'),
+        ],
     )
     logger = logging.getLogger(__name__)
+    logger.info(f"Logging to: {log_file}")
 
     try:
         logger.info("Starting Alma Digital Collection Manager v6 (almaapitk)")
