@@ -432,14 +432,23 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = os.path.join(log_dir, f"alma_manager_{timestamp}.log")
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(log_file, encoding='utf-8'),
-        ],
-    )
+    # Build handlers explicitly so we can also attach the file handler to
+    # almaapitk's per-domain loggers (they have propagate=False, so root's
+    # handlers don't see their messages by default).
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(log_format)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.INFO)  # filter DEBUG noise from almaapitk; full DEBUG stays in almaapitk's own per-domain logs
+
+    logging.basicConfig(level=logging.INFO, handlers=[console_handler, file_handler])
+
+    # Capture almaapitk's API/domain log messages in our archive log file too
+    for almapi_name in ('almapi.api_client', 'almapi.bibs', 'almapi.admin'):
+        logging.getLogger(almapi_name).addHandler(file_handler)
+
     logger = logging.getLogger(__name__)
     logger.info(f"Logging to: {log_file}")
 
