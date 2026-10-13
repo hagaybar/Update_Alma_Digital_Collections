@@ -41,7 +41,7 @@ poetry shell
 git clone https://github.com/hagaybar/Update_Alma_Digital_Collections.git
 cd Update_Alma_Digital_Collections
 python -m venv .venv && source .venv/bin/activate
-pip install "almaapitk>=0.4.6" "pyyaml>=6.0"
+pip install "almaapitk>=0.5.1" "pyyaml>=6.0"
 ```
 
 ## Configuration
@@ -154,7 +154,7 @@ Each run writes a timestamped log to `<log-dir>/alma_manager_YYYYMMDD_HHMMSS.log
 ├── dry_test.py                  # standalone preview utility
 ├── tests/                       # unit tests for the diff and safety guards (poetry run pytest)
 ├── config_sample.yml            # template config (copy → config.yml)
-├── pyproject.toml               # Poetry project, pins almaapitk >= 0.4.6
+├── pyproject.toml               # Poetry project, pins almaapitk >= 0.5.1
 └── poetry.lock
 ```
 
