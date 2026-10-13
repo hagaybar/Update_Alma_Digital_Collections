@@ -150,7 +150,6 @@ Each run writes a timestamped log to `<log-dir>/alma_manager_YYYYMMDD_HHMMSS.log
 ```
 .
 ├── collection_sync.py           # main script (CLI entry point + sync logic)
-├── AlmaCollectionManager_6.py   # deprecated shim → collection_sync.main (for old scheduled tasks)
 ├── dry_test.py                  # standalone preview utility
 ├── tests/                       # unit tests for the diff and safety guards (poetry run pytest)
 ├── config_sample.yml            # template config (copy → config.yml)
