@@ -9,10 +9,7 @@ package-mode = false
 python = "^3.12"
 # AlmaAPITK package from PyPI (https://pypi.org/project/almaapitk/)
 almaapitk = ">=0.4.6"
-requests = "^2.32"
-beautifulsoup4 = "^4.12"
 pyyaml = "^6.0"
-lxml = ">=6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
