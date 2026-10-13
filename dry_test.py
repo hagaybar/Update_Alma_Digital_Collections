@@ -19,16 +19,15 @@ from typing import List, Optional
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from collection_sync import AlmaCollectionManager, ConfigManager, plan_sync
+from collection_sync import AlmaCollectionManager, ConfigManager, RedactingFormatter, plan_sync
 from almaapitk import AlmaAPIClient
 
 
 def setup_logging():
     """Setup logging for dry test."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
+    handler = logging.StreamHandler()
+    handler.setFormatter(RedactingFormatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
     return logging.getLogger(__name__)
 
 

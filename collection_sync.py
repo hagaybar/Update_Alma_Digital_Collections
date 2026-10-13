@@ -19,6 +19,7 @@ import os
 import yaml
 import argparse
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Iterable, List, Dict, Any, Optional
 from datetime import datetime
@@ -30,6 +31,34 @@ MMS_ID_COLUMN = "Column1"
 
 # Page size for collection member reads (Alma maximum is 100).
 MEMBERS_PAGE_SIZE = 100
+
+# Env vars whose values must never appear in console or log output.
+SECRET_ENV_VARS = ("ALMA_SB_API_KEY", "ALMA_PROD_API_KEY")
+
+# A credential label (apikey, api_key, token, ...) followed by its value,
+# e.g. "?apikey=VALUE", "Authorization: apikey VALUE", "'token': 'VALUE'".
+_LABELLED_SECRET = re.compile(
+    r"(?i)((?:authorization|apikey|api_key|token|password|secret)['\"]?\s*[:=]\s*['\"]?(?:apikey\s+)?)"
+    r"[^\s&'\",}]+"
+)
+
+
+class RedactingFormatter(logging.Formatter):
+    """
+    Formatter that scrubs credentials from the finished log line, traceback included.
+
+    almaapitk's own formatter only redacts structured fields, and this script's
+    handlers also receive almaapitk's messages, so redaction happens here on the
+    final text: labelled secrets by pattern, and the Alma API key values by exact match.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        text = _LABELLED_SECRET.sub(r"\1***REDACTED***", super().format(record))
+        for var in SECRET_ENV_VARS:
+            value = os.environ.get(var)
+            if value:
+                text = text.replace(value, "***REDACTED***")
+        return text
 
 
 class ReportError(Exception):
@@ -417,7 +446,7 @@ def main():
     # almaapitk's per-domain loggers (they have propagate=False, so root's
     # handlers don't see their messages by default).
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    formatter = logging.Formatter(log_format)
+    formatter = RedactingFormatter(log_format)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
