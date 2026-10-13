@@ -208,14 +208,18 @@ class AlmaCollectionManager:
 
         # Use the client's base URL and API key
         base_url = self.client.base_url.rstrip('/')
-        headers = {"Accept": "application/xml"}
+        # Key in the Authorization header, never in the URL (a failed request
+        # would otherwise print or log the key with the URL).
+        headers = {
+            "Accept": "application/xml",
+            "Authorization": f"apikey {self.client.api_key}",
+        }
 
         while True:
             params = {
                 'path': report_path,
                 'limit': limit,
                 'col_names': 'false',
-                'apikey': self.client.api_key
             }
 
             if token:
