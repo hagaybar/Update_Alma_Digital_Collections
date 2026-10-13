@@ -10,7 +10,7 @@ Built on top of [`almaapitk`](https://pypi.org/project/almaapitk/), a toolkit fo
 
 For each task in your config:
 
-1. Pulls every MMS ID listed in the configured Analytics report(s).
+1. Pulls every MMS ID listed in the configured Analytics report(s), via `almaapitk.Analytics`.
 2. Pulls the current members of the target digital collection.
 3. Computes `to_add = report − collection` and `to_remove = collection − report`.
 4. Calls `POST /bibs/collections/{id}/bibs` and `DELETE /bibs/collections/{id}/bibs/{mms_id}` to converge the collection on the report.
@@ -41,7 +41,7 @@ poetry shell
 git clone https://github.com/hagaybar/Update_Alma_Digital_Collections.git
 cd Update_Alma_Digital_Collections
 python -m venv .venv && source .venv/bin/activate
-pip install "almaapitk>=0.3.1" "requests>=2.32" "beautifulsoup4>=4.12" "pyyaml>=6.0" lxml
+pip install "almaapitk>=0.5.1" "pyyaml>=6.0"
 ```
 
 ## Configuration
@@ -90,32 +90,32 @@ The tool resolves the config path in this order: `--config` flag → `ALMA_CONFI
 ### Run all tasks
 
 ```bash
-python AlmaCollectionManager_6.py
+python collection_sync.py
 ```
 
 ### Run a specific task (or several)
 
 ```bash
-python AlmaCollectionManager_6.py -t open_access_journals
-python AlmaCollectionManager_6.py -t open_access_journals -t thesis_collection
+python collection_sync.py -t open_access_journals
+python collection_sync.py -t open_access_journals -t thesis_collection
 ```
 
 ### Dry run (no writes)
 
 ```bash
-python AlmaCollectionManager_6.py --dry-run
+python collection_sync.py --dry-run
 ```
 
 ### Use a non-default config
 
 ```bash
-python AlmaCollectionManager_6.py --config /etc/alma/prod.yml
+python collection_sync.py --config /etc/alma/prod.yml
 ```
 
 ### Custom log directory
 
 ```bash
-python AlmaCollectionManager_6.py --log-dir /var/log/alma-sync
+python collection_sync.py --log-dir /var/log/alma-sync
 ```
 
 ### CLI flags
@@ -149,10 +149,12 @@ Each run writes a timestamped log to `<log-dir>/alma_manager_YYYYMMDD_HHMMSS.log
 
 ```
 .
-├── AlmaCollectionManager_6.py   # main script (CLI entry point + sync logic)
+├── collection_sync.py           # main script (CLI entry point + sync logic)
+├── AlmaCollectionManager_6.py   # deprecated shim → collection_sync.main (for old scheduled tasks)
 ├── dry_test.py                  # standalone preview utility
+├── tests/                       # unit tests for the diff and safety guards (poetry run pytest)
 ├── config_sample.yml            # template config (copy → config.yml)
-├── pyproject.toml               # Poetry project, pins almaapitk >= 0.3.1
+├── pyproject.toml               # Poetry project, pins almaapitk >= 0.5.1
 └── poetry.lock
 ```
 
@@ -160,9 +162,9 @@ Each run writes a timestamped log to `<log-dir>/alma_manager_YYYYMMDD_HHMMSS.log
 
 - **Duplicate MMS IDs in reports** — deduplicated before any API call.
 - **MMS already in the collection** (HTTP 400 "already assigned") — treated as success, logged at DEBUG.
-- **Empty reports** — the run is skipped; the collection is not modified. This is intentional, to avoid accidentally clearing a collection because of a broken report.
+- **Empty, malformed or failed reports** — if *any* report for a task returns no rows, lacks the `Column1` MMS ID column, or fails to fetch, the collection is not modified. All reports are fetched and checked before any write. This is intentional, to avoid accidentally clearing a collection because of a broken report.
 - **Removal failures** (e.g. the bib has representations attached) — logged as warnings; the run continues.
-- **Analytics pagination** — handled via the `ResumptionToken` / `IsFinished` markers; default page size 100.
+- **Analytics pagination** — handled by `almaapitk.Analytics` via the `ResumptionToken` / `IsFinished` markers.
 
 ## Related
 

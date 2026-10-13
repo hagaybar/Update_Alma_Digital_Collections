@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dry Test for AlmaCollectionManager v6
+Dry Test for collection_sync
 
 Fetches real data from Alma sandbox and reports what changes would be made
 without actually executing add/remove operations.
@@ -19,16 +19,15 @@ from typing import List, Optional
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from AlmaCollectionManager_6 import AlmaCollectionManager, ConfigManager
+from collection_sync import AlmaCollectionManager, ConfigManager, RedactingFormatter, plan_sync
 from almaapitk import AlmaAPIClient
 
 
 def setup_logging():
     """Setup logging for dry test."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
+    handler = logging.StreamHandler()
+    handler.setFormatter(RedactingFormatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
     return logging.getLogger(__name__)
 
 
@@ -51,7 +50,7 @@ def run_dry_test(
         logger = logging.getLogger(__name__)
 
     print("\n" + "="*70)
-    print("DRY TEST - AlmaCollectionManager v6")
+    print("DRY TEST - collection_sync")
     print("="*70)
     print(f"Environment: {client.environment}")
     print(f"Collection ID: {collection_id}")
@@ -63,25 +62,18 @@ def run_dry_test(
     # Step 1: Fetch current collection state
     print("[1/4] Fetching current collection state...")
     try:
-        current_count = manager.get_collection_count()
+        current_mms_ids = manager.get_collection_mms_ids()
+        current_count = len(current_mms_ids)
         print(f"      Collection contains {current_count} items")
-
-        current_mms_ids = []
-        if current_count > 0:
-            current_mms_ids = manager.get_collection_mms_ids(current_count)
-            print(f"      Retrieved {len(current_mms_ids)} MMS IDs from collection")
-
-            # Show sample of current items
-            if current_mms_ids:
-                print(f"      Sample (first 5): {current_mms_ids[:5]}")
-        else:
-            print("      Collection is empty")
+        if current_mms_ids:
+            print(f"      Sample (first 5): {current_mms_ids[:5]}")
     except Exception as e:
         print(f"      ERROR fetching collection: {e}")
         return
 
     # Step 2: Fetch report data (if report paths provided)
     report_mms_ids = []
+    report_failed = False
     if report_paths:
         print(f"\n[2/4] Fetching MMS IDs from {len(report_paths)} report(s)...")
         for i, path in enumerate(report_paths, 1):
@@ -90,12 +82,13 @@ def run_dry_test(
                 ids = manager.get_mms_ids_from_report(path)
                 report_mms_ids.extend(ids)
                 print(f"      Found {len(ids)} MMS IDs in report {i}")
-            except Exception as e:
+            except Exception as e:  # ReportError or AlmaAPIError
                 print(f"      ERROR fetching report: {e}")
-                # Continue with other reports
+                report_failed = True
+                # Continue with other reports, for the preview only
 
         # Deduplicate
-        report_mms_ids = list(set(report_mms_ids))
+        report_mms_ids = sorted(set(report_mms_ids))
         print(f"      Total unique MMS IDs from reports: {len(report_mms_ids)}")
 
         if report_mms_ids:
@@ -104,15 +97,13 @@ def run_dry_test(
         print("\n[2/4] No report paths provided - skipping report fetch")
         print("      (Use --report-path to specify Analytics reports)")
 
-    # Step 3: Calculate diffs
+    # Step 3: Calculate diffs (a failed report means the real run changes nothing)
     print("\n[3/4] Calculating differences...")
 
-    current_set = set(current_mms_ids)
-    report_set = set(report_mms_ids)
-
-    to_add = list(report_set - current_set)
-    to_remove = list(current_set - report_set)
-    unchanged = list(current_set & report_set)
+    plan = plan_sync([] if report_failed else report_mms_ids, current_mms_ids)
+    to_add = plan.to_add
+    to_remove = plan.to_remove
+    unchanged = sorted(set(current_mms_ids) & set(report_mms_ids))
 
     print(f"      Items to ADD:    {len(to_add)}")
     print(f"      Items to REMOVE: {len(to_remove)}")
@@ -125,6 +116,9 @@ def run_dry_test(
     if not report_paths:
         print("      No report paths provided - cannot calculate sync actions")
         print("      Provide --report-path to see what would be synced")
+    elif report_failed:
+        print("      A report failed or was empty/malformed")
+        print("      The real run would make no changes to this collection")
     elif not report_mms_ids:
         print("      No MMS IDs found in reports")
         print("      If reports are empty, no changes would be made")
@@ -163,7 +157,7 @@ def run_dry_test(
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Dry test for AlmaCollectionManager v6'
+        description='Dry test for collection_sync'
     )
     parser.add_argument(
         '--collection-id', '-i',
