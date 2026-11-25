@@ -15,7 +15,7 @@ For each task in your config:
 3. Computes `to_add = report − collection` and `to_remove = collection − report`.
 4. Calls `POST /bibs/collections/{id}/bibs` and `DELETE /bibs/collections/{id}/bibs/{mms_id}` to converge the collection on the report.
 
-A dry-run mode (and a separate `dry_test.py` utility) reports the diff without touching Alma.
+To preview the diff without touching Alma, use `dry_test.py` (below). The `--dry-run` flag only lists the tasks a run would process; it does not fetch reports or compute a diff.
 
 ## Requirements
 
@@ -66,7 +66,7 @@ cp config_sample.yml config.yml
 ```
 
 ```yaml
-environment: SANDBOX  # or PRODUCTION
+environment: SANDBOX  # or PRODUCTION; if omitted, the tool uses PRODUCTION
 
 tasks:
   open_access_journals:
@@ -106,6 +106,8 @@ python collection_sync.py -t open_access_journals -t thesis_collection
 python collection_sync.py --dry-run
 ```
 
+This logs each task's collection ID and report paths and stops there. A run without `--dry-run` writes to Alma.
+
 ### Use a non-default config
 
 ```bash
@@ -124,7 +126,7 @@ python collection_sync.py --log-dir /var/log/alma-sync
 | --- | --- |
 | `-t, --task NAME` | Run a specific task (repeatable). Default: all tasks. |
 | `-c, --config PATH` | Path to config file. Default: `./config.yml`. |
-| `--dry-run` | Print what would happen; no API writes. |
+| `--dry-run` | List the tasks and report paths that would run; no API calls. |
 | `--log-dir DIR` | Directory for timestamped log files. Default: `./logs`. |
 
 ## Previewing a diff with `dry_test.py`
@@ -149,6 +151,8 @@ Each run writes a timestamped log to `<log-dir>/alma_manager_YYYYMMDD_HHMMSS.log
 
 ```
 .
+├── CLAUDE.md                    # rules and commands for coding agents
+├── AGENTS.md                    # the reviewer's brief (Codex)
 ├── collection_sync.py           # main script (CLI entry point + sync logic)
 ├── dry_test.py                  # standalone preview utility
 ├── tests/                       # unit tests for the diff and safety guards (poetry run pytest)

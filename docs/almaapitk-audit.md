@@ -1,5 +1,7 @@
 # almaapitk 0.3.1 → 0.4.6 Compatibility Audit
 
+> **Historical.** Written against `AlmaCollectionManager_6.py`, which has since become `collection_sync.py`; Analytics now goes through `almaapitk.Analytics` instead of direct `requests`. Line numbers below refer to the old file.
+
 **Date:** 2026-06-02
 **Scope:** Does bumping `almaapitk` from the current floor `>=0.3.1` to `>=0.4.6` (latest PyPI release) break this repo — a **scheduled, unattended, _mutating_ production job** that adds/removes MMS IDs in Alma Digital Collections (`AlmaCollectionManager_6.py`)? A bad bump fails **silently in prod**, so the bar is "prove the surface is preserved," not "looks fine."
 **Method:** Read-only. Both versions obtained via `pip download almaapitk==<v> --no-deps` and unzipped to `/tmp/almaapitk_audit/src031` and `/tmp/almaapitk_audit/src046`; compared per-surface-file. The 0.4.6 public surface was introspected with the project interpreter (`PYTHONPATH=src046 python -c ...`): imports resolve, signatures match, `AlmaAPIError('x', status_code=400).status_code == 400`. No project files were modified by the audit; nothing was installed into `.venv`. Mirrors `Fetch_Alma_Analytics_Reports/docs/almaapitk-0.4.6-audit.md` and `Alma-RS-lending-request-automation/docs/almaapitk-audit.md`, adapted for **this repo's big jump** (0.3.1 → 0.4.6 crosses 0.4.3 and 0.4.5).
