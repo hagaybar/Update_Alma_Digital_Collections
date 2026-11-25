@@ -147,12 +147,20 @@ as high-risk.
 - **L3 (read-only; never a real sync against PRODUCTION):** `dry_test.py` is the live check. It
   only reads (collection members and Analytics rows) and prints the plan; it never calls add or
   remove.
-  - SANDBOX, with `ALMA_PROD_API_KEY` unset:
-    `poetry run python dry_test.py --environment SANDBOX --collection-id <sandbox_collection_id> --report-path <report_path>`
-    on a sandbox collection that has members (more than 100, if one exists, so member paging
-    runs). The report path is what exercises `Analytics.fetch_report_rows`.
-  - Or read-only against PRODUCTION, on masedet with the real config:
-    `poetry run python dry_test.py --config config.yml --task <task_name>`.
+  - **Analytics reads only work against PRODUCTION.** Against the Sandbox,
+    `Analytics.fetch_report_rows` fails on Alma's side (`obiLogin is null`). So a full preview
+    (members + report + diff) is always a read-only PRODUCTION run. The Sandbox is a copy of
+    Production, so a production task's `collection_id` also exists there.
+  - Run both, using one production task's collection ID and report path(s):
+    1. SANDBOX, with `ALMA_PROD_API_KEY` unset:
+       `poetry run python dry_test.py --environment SANDBOX --collection-id <collection_id> --report-path <report_path>`.
+       This checks member reads and paging (pick a collection with more than 100 members). The
+       report read is expected to fail, and the pass condition is that the guard reports "the
+       real run would make no changes".
+    2. PRODUCTION, read-only:
+       `poetry run python dry_test.py --environment PRODUCTION --collection-id <collection_id> --report-path <report_path>`,
+       or on masedet `poetry run python dry_test.py --config config.yml --task <task_name>`.
+       This is what exercises `Analytics.fetch_report_rows` and the diff.
   - Pass: no errors; the member count equals the collection's total; the report count is
     plausible; the add and remove counts match a preview taken on the previous version (run it
     before switching, or on the Prod clone). A large unexplained remove count is a failure.
@@ -162,12 +170,9 @@ as high-risk.
     That is still read-only for `dry_test.py`, but check which one you are on.
   - `collection_sync.py --dry-run` is not a live check: it only lists tasks and makes no API
     calls.
-  - **Not determined:** whether a sandbox collection with members and an Analytics report path
-    that works against the SANDBOX key exist. No test fixture or config for them is in the
-    repo. If none exists, use the read-only PRODUCTION preview and say so in the PR. The add and
-    remove calls are then not exercised live; a SANDBOX-only sync (a config with
-    `environment: SANDBOX`, a test collection, `ALMA_PROD_API_KEY` unset) is the only allowed
-    way to exercise them, and it has not been set up.
+  - The add and remove calls are not exercised live by L3. A SANDBOX sync can't exercise them
+    either: its report read fails, so the guard makes no changes. Their coverage is the unit tests
+    plus the audit's error-class review (step 2).
 - **DevSandbox check (masedet):** **not determined from the repo.** The Task Scheduler command
   and the real `config.yml` live on masedet, so this document cannot say whether the DevSandbox
   clone has a scheduled task, or whether its `config.yml` targets SANDBOX or PRODUCTION. Until
