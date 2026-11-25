@@ -42,9 +42,9 @@ Written only:
   `dry_test.py` first. Tracked in #16; do not change these defaults without the owner, since the
   masedet Task Scheduler command depends on them.
 - Production writes need a `dry_test.py` preview and the owner's OK.
-- Any change to the `almaapitk` pin follows the bump protocol (one bump at a time, with an audit
-  doc); it lands as `docs/almaapitk-bump-protocol.md` with PR #13 (almaapitk 0.7.0). A pin bump
-  reaches Prod on the next auto-deploy after the owner merges to `prod`.
+- Any change to the `almaapitk` pin follows `docs/almaapitk-bump-protocol.md` (binding: one bump
+  at a time, from this repo, with an audit doc). A pin bump reaches Prod on the next auto-deploy
+  after the owner merges to `prod`.
 - Behaviour changes come with a test in `tests/` that fails without them.
 
 ## Where to look
