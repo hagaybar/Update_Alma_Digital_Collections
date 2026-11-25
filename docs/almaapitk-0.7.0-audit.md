@@ -52,7 +52,14 @@ pass on 0.7.0.
 
 - **Lock:** `poetry update almaapitk` moved almaapitk 0.5.1 → 0.7.0 only.
 - **L2:** 26 passed.
-- **L3 (partial):** `dry_test.py` on SANDBOX, with `ALMA_PROD_API_KEY` unset, read one collection
-  cleanly on 0.7.0. That collection had 0 members and no report path was given, so the Analytics
-  read and the diff were not exercised. The owner runs `dry_test.py` with a populated collection
-  and a report path before merging.
+- **L3 (2026-11-11, partial):** `dry_test.py` on SANDBOX, with `ALMA_PROD_API_KEY` unset, read an
+  empty collection cleanly on 0.7.0. No report path, so the Analytics read and the diff were not
+  exercised.
+- **L3 (2026-11-25, complete):** one production task (`<task>`: one collection, one report path),
+  read-only `dry_test.py` runs on 0.7.0:
+  - SANDBOX (`ALMA_PROD_API_KEY` unset): members paged across 3 pages, all fetched (282 of 282).
+    The Analytics read failed on Alma's side (`obiLogin is null`: Analytics isn't available in
+    the Sandbox). The guard worked: "a report failed… the real run would make no changes".
+  - PRODUCTION (read-only key, production window closed; `dry_test.py` has no write calls):
+    184 of 184 members fetched; report returned 185 rows, i.e. 184 unique MMS IDs. Diff: 0 to
+    add, 0 to remove, 184 unchanged, which matches the current state.
