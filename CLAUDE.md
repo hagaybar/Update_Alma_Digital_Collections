@@ -2,9 +2,11 @@
 
 Keeps Alma digital collections' membership in sync with Alma Analytics reports: for each task in
 `config.yml`, MMS IDs in the reports but not the collection are added, members not in the reports
-are removed. It is a **scheduled, unattended job on masedet that writes to production Alma**
-(`main` → DevSandbox, `prod` → Prod; the Task Scheduler command and real `config.yml` live on
-masedet, not in this repo). Usage for humans: `README.md`.
+are removed. It is a **scheduled, unattended job on the production workstation that writes to
+production Alma** (`main` → DevSandbox, `prod` → Prod; the scheduled-task command and the real
+`config.yml` live on that workstation, not in this repo). Usage for humans: `README.md`.
+Deployment and operations notes for the production host are kept in the owner's private
+documentation; the user-level instructions say where.
 
 ## Layout
 - `collection_sync.py`: everything. `plan_sync` (the diff), `extract_mms_ids` (report rows →
@@ -21,7 +23,7 @@ masedet, not in this repo). Usage for humans: `README.md`.
   `--collection-id <id> --report-path <path> --environment SANDBOX`.
 - Live sync: `python collection_sync.py [-t <task>]...` — **writes**. `--dry-run` only lists the
   tasks it would run; it does not compute a diff. Use `dry_test.py` to see the plan.
-- Deploy: merge to `main` → DevSandbox; the owner merges `main` → `prod`. The masedet auto-deploy
+- Deploy: merge to `main` → DevSandbox; the owner merges `main` → `prod`. The production auto-deploy
   pulls and runs `poetry install` on its next scheduled run.
 
 ## Rules
@@ -40,7 +42,7 @@ Written only:
 - **A config without `environment` runs against PRODUCTION** (`get_environment()` default), and
   a plain run writes. Always set `environment: SANDBOX` in a test config, and preview with
   `dry_test.py` first. Tracked in #16; do not change these defaults without the owner, since the
-  masedet Task Scheduler command depends on them.
+  production scheduled task depends on them.
 - Production writes need a `dry_test.py` preview and the owner's OK.
 - Any change to the `almaapitk` pin follows `docs/almaapitk-bump-protocol.md` (binding: one bump
   at a time, from this repo, with an audit doc). A pin bump reaches Prod on the next auto-deploy

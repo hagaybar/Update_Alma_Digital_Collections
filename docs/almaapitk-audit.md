@@ -14,7 +14,7 @@
 
 ## (a) Usage surface — the entire almaapitk contract this repo depends on at runtime
 
-`AlmaCollectionManager_6.py` is the production entry point (run unattended on the masedet box). `dry_test.py` is a manual preview tool that imports the same classes. The complete almaapitk surface:
+`AlmaCollectionManager_6.py` is the production entry point (run unattended on the production workstation). `dry_test.py` is a manual preview tool that imports the same classes. The complete almaapitk surface:
 
 | Surface element | Location (`AlmaCollectionManager_6.py`) | Detail |
 |---|---|---|
@@ -134,5 +134,5 @@ Test layering for this repo (mirrors the analytics/RS model; adapted because **t
 **Recommended next steps (consumer-rollout gate):**
 1. Add the L2 offline mock/golden test (§F) and the L3 opt-in SANDBOX add-then-remove smoke (§F), with the PROD-write refusal baked into L3.
 2. Bump the pin in `pyproject.toml`: `almaapitk = ">=0.4.6"`.
-3. `poetry update almaapitk` then `poetry run pytest` (offline). Run the L3 SANDBOX smoke manually with `RUN_LIVE_SMOKE=1` on the masedet box.
-4. Re-verify on the masedet prod workstation per its own `poetry install` before fast-forward merging `main` → `prod`.
+3. `poetry update almaapitk` then `poetry run pytest` (offline). Run the L3 SANDBOX smoke manually with `RUN_LIVE_SMOKE=1` on the production workstation.
+4. Re-verify on the production workstation per its own `poetry install` before fast-forward merging `main` → `prod`.
