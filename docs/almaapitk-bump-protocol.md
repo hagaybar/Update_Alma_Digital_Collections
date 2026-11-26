@@ -3,9 +3,9 @@
 Every change to this repo's `almaapitk` pin follows this document, step by step. It is binding:
 a bump that skips a step is not done. `CLAUDE.md` points here.
 
-**Why it exists.** This repo is a production consumer of `almaapitk`. It runs on masedet, and
-`main` and `prod` auto-deploy on a schedule with no second checkpoint. A bad bump on a
-scheduled repo can fail silently in production. A bump is therefore a small, audited change
+**Why it exists.** This repo is a production consumer of `almaapitk`. It runs on the production
+workstation, and `main` and `prod` auto-deploy on a schedule with no second checkpoint. A bad
+bump on a scheduled repo can fail silently in production. A bump is therefore a small, audited change
 made inside this repo, never a one-line pin edit pushed from somewhere else.
 
 ## Ground rules
@@ -77,10 +77,10 @@ owner runs it before merging.
 - Tick the issue's boxes that are actually done.
 - The owner merges.
 
-### 8. DevSandbox (masedet)
+### 8. DevSandbox
 
-After the next auto-deploy of `main`, run the repo's DevSandbox check on masedet (see "This
-repo"). If L3 in step 6 already ran there, on the deployed `main`, it counts. Note the result in
+After the next auto-deploy of `main`, run the repo's DevSandbox check on the production
+workstation (see "This repo"). If L3 in step 6 already ran there, on the deployed `main`, it counts. Note the result in
 the issue.
 
 ### 9. Prod
@@ -159,7 +159,7 @@ as high-risk.
        real run would make no changes".
     2. PRODUCTION, read-only:
        `poetry run python dry_test.py --environment PRODUCTION --collection-id <collection_id> --report-path <report_path>`,
-       or on masedet `poetry run python dry_test.py --config config.yml --task <task_name>`.
+       or on the production workstation `poetry run python dry_test.py --config config.yml --task <task_name>`.
        This is what exercises `Analytics.fetch_report_rows` and the diff.
   - Pass: no errors; the member count equals the collection's total; the report count is
     plausible; the add and remove counts match a preview taken on the previous version (run it
@@ -173,12 +173,12 @@ as high-risk.
   - The add and remove calls are not exercised live by L3. A SANDBOX sync can't exercise them
     either: its report read fails, so the guard makes no changes. Their coverage is the unit tests
     plus the audit's error-class review (step 2).
-- **DevSandbox check (masedet):** **not determined from the repo.** The Task Scheduler command
-  and the real `config.yml` live on masedet, so this document cannot say whether the DevSandbox
-  clone has a scheduled task, or whether its `config.yml` targets SANDBOX or PRODUCTION. Until
-  the owner records it here, on masedet:
-  1. In `D:\Scripts\DevSandbox\Update_Alma_Digital_Collections`: `git log -1` shows the merged
-     `main`, and
+- **DevSandbox check (production workstation):** **not determined from the repo.** The
+  scheduled-task command and the real `config.yml` live on the production workstation, so this
+  document cannot say whether the DevSandbox clone has a scheduled task, or whether its
+  `config.yml` targets SANDBOX or PRODUCTION. Until the owner records it here, on the production
+  workstation:
+  1. In the DevSandbox clone of this repo: `git log -1` shows the merged `main`, and
      `poetry run python -c "import almaapitk; print(almaapitk.__version__)"` shows the new
      version.
   2. Check which `environment` its `config.yml` sets. If it is PRODUCTION or missing, **do not
