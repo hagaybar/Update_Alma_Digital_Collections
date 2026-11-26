@@ -66,7 +66,7 @@ cp config_sample.yml config.yml
 ```
 
 ```yaml
-environment: SANDBOX  # or PRODUCTION; if omitted, the tool uses PRODUCTION
+environment: SANDBOX  # required: SANDBOX or PRODUCTION; a missing or other value is refused
 
 tasks:
   open_access_journals:
