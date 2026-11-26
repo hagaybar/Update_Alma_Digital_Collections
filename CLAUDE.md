@@ -39,10 +39,11 @@ Enforced by code:
 - `config.yml` is gitignored; commit only `config_sample.yml`.
 
 Written only:
-- **A config without `environment` runs against PRODUCTION** (`get_environment()` default), and
-  a plain run writes. Always set `environment: SANDBOX` in a test config, and preview with
-  `dry_test.py` first. Tracked in #16; do not change these defaults without the owner, since the
-  production scheduled task depends on them.
+- **A config must set `environment: SANDBOX` or `PRODUCTION`**; a missing or unknown value is
+  refused (`ConfigManager`, `tests/test_config_environment.py`). A plain run still writes
+  (`--dry-run` only lists tasks); preview with `dry_test.py` first. Making writes opt-in is
+  still open in #16; do not change it without the owner, since the production scheduled task
+  depends on it.
 - Production writes need a `dry_test.py` preview and the owner's OK.
 - Any change to the `almaapitk` pin follows `docs/almaapitk-bump-protocol.md` (binding: one bump
   at a time, from this repo, with an audit doc). A pin bump reaches Prod on the next auto-deploy

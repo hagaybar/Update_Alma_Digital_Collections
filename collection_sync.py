@@ -350,6 +350,9 @@ class AlmaCollectionManager:
         return plan
 
 
+VALID_ENVIRONMENTS = ('SANDBOX', 'PRODUCTION')
+
+
 class ConfigManager:
     """
     Manages configuration from YAML files.
@@ -376,6 +379,14 @@ class ConfigManager:
         if not config:
             raise ValueError("Configuration file is empty")
 
+        # No default: a missing or misspelled key must never mean PRODUCTION.
+        environment = config.get('environment')
+        if environment not in VALID_ENVIRONMENTS:
+            raise ValueError(
+                "Configuration must set 'environment' to SANDBOX or PRODUCTION "
+                f"(got {environment!r})"
+            )
+
         if 'tasks' not in config:
             raise ValueError("Configuration must contain a 'tasks' section")
 
@@ -396,7 +407,7 @@ class ConfigManager:
 
     def get_environment(self) -> str:
         """Get environment (SANDBOX or PRODUCTION)."""
-        return self.config.get('environment', 'PRODUCTION')
+        return self.config['environment']
 
     def get_task(self, task_name: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a specific task."""
